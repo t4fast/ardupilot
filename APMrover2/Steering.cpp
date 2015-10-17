@@ -80,6 +80,22 @@ bool Rover::use_pivot_steering(void)
     return false;
 }
 
+/*
+  test if we are loitering AND should be stopped at a waypoint
+*/
+bool Rover::in_stationary_loiter()
+{
+    // Confirm we are in AUTO mode and need to loiter for a time period
+    if ((loiter_time > 0) && (control_mode == AUTO)) {
+        // Check if active loiter is enabled AND we are outside the waypoint loiter radius
+        // then NOT the result for the if logic
+        if (!(loiter_active && (distance_past_wp > g.waypoint_radius))) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /*
   calculate the throtte for auto-throttle modes
@@ -88,7 +104,7 @@ void Rover::calc_throttle(float target_speed)
 {
     // If not autostarting OR we are loitering at a waypoint
     // then set the throttle to minimum
-    if (!auto_check_trigger() || ((loiter_time > 0) && (control_mode == AUTO))) {
+    if (!auto_check_trigger() || in_stationary_loiter()) {
         channel_throttle->servo_out = g.throttle_min.get();
         return;
     }
@@ -166,7 +182,13 @@ void Rover::calc_lateral_acceleration()
 {
     switch (control_mode) {
     case AUTO:
-        nav_controller->update_waypoint(prev_WP, next_WP);
+        // If we have reached the waypoint previously navigate from
+        // our current position
+        if (loiter_reached_wp) {
+            nav_controller->update_waypoint(current_loc, next_WP);
+        } else {
+            nav_controller->update_waypoint(prev_WP, next_WP);
+        }
         break;
 
     case RTL:
@@ -183,6 +205,7 @@ void Rover::calc_lateral_acceleration()
     // negative error = left turn
 	// positive error = right turn
     lateral_acceleration = nav_controller->lateral_acceleration();
+
     if (use_pivot_steering()) {
         int16_t bearing_error = wrap_180_cd(nav_controller->target_bearing_cd() - ahrs.yaw_sensor) / 100;
         if (bearing_error > 0) {
@@ -199,7 +222,7 @@ void Rover::calc_lateral_acceleration()
 void Rover::calc_nav_steer()
 {
     // check to see if the rover is loitering
-    if ((loiter_time > 0) && (control_mode == AUTO)) {
+    if (in_stationary_loiter()) {
         channel_steer->servo_out = 0;
         return;
     }

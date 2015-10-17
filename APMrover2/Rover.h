@@ -364,8 +364,10 @@ private:
     // Loiter control
     uint16_t loiter_time_max; // How long we should loiter at the nav_waypoint (time in seconds)
     uint32_t loiter_time;     // How long have we been loitering - The start time in millis
+    bool loiter_active; // TRUE if we actively return to the loitering waypoint if we drift off
 
     float distance_past_wp; // record the distance we have gone past the wp
+    bool loiter_reached_wp;  // set to true if we have reached the WP and we are going to loiter
 
 private:
     // private member functions
@@ -509,6 +511,7 @@ private:
     void do_digicam_configure(const AP_Mission::Mission_Command& cmd);
     void do_digicam_control(const AP_Mission::Mission_Command& cmd);
     void init_capabilities(void);
+    bool in_stationary_loiter(void);
 
 public:
     bool print_log_menu(void);
