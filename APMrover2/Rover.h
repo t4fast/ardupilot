@@ -512,6 +512,7 @@ private:
     void do_digicam_control(const AP_Mission::Mission_Command& cmd);
     void init_capabilities(void);
     bool in_stationary_loiter(void);
+    void set_loiter_active(const AP_Mission::Mission_Command& cmd);
 
 public:
     bool print_log_menu(void);

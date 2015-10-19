@@ -181,6 +181,21 @@ void Rover::do_RTL(void)
 	next_WP = home;
 }
 
+void Rover::set_loiter_active(const AP_Mission::Mission_Command& cmd)
+{
+    // this parameter controls if we actively loiter - that is if we drift off the
+    // waypoint for whatever reason then power up and return to it but only if
+    // loitering is enabled
+    gcs_send_text_fmt(PSTR("set_loiter_active %i"),
+                      cmd.content.nav_waypoint_params.loiter_actively);
+    if ((loiter_time_max > 0)  &&
+        (abs(cmd.content.nav_waypoint_params.loiter_actively) > 0)) {
+        loiter_active = true;
+        return;
+    }
+    loiter_active = false;
+}
+
 void Rover::do_nav_wp(const AP_Mission::Mission_Command& cmd)
 {
     // this will be used to remember the time in millis after we reach or pass the WP.
@@ -188,19 +203,7 @@ void Rover::do_nav_wp(const AP_Mission::Mission_Command& cmd)
     // this is the delay, stored in seconds
     loiter_time_max = abs(cmd.p1);
 
-    // this parameter controls if we actively loiter - that is if we drift off the
-    // waypoint for whatever reason then power up and return to it but only if
-    // loitering is enabled
-    if (loiter_time_max > 0) {
-        if (abs(cmd.content.nav_waypoint_params.loiter_actively) > 0) {
-            loiter_active = true;
-        } else {
-            loiter_active = false;
-        }
-    }
-
-    // REMOVE AFTER FINISHED TESTING
-    loiter_active = true;
+    set_loiter_active(cmd);
 
     // this is the distance we travel past the waypoint - not there yet so 0 initially
     distance_past_wp = 0;
