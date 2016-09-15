@@ -370,7 +370,15 @@ private:
     bool auto_throttle_mode;
 
     // Store the time the last GPS message was received.
-    uint32_t last_gps_msg_ms{0}; 
+    uint32_t last_gps_msg_ms{0};
+
+    // Are we in a yaw/thrust guided mode rather then a simple WP "follow-me" mode
+    bool inGuidedYawThrust;
+    struct {
+        float turn_angle;
+        uint8_t target_speed;
+    } guidedYawSpeed;
+
 
 private:
     // private member functions
@@ -521,6 +529,7 @@ private:
     bool motor_active();
     void update_home();
     void accel_cal_update(void);
+    void guidedYawThrust();
 public:
     bool print_log_menu(void);
     int8_t dump_log(uint8_t argc, const Menu::arg *argv);

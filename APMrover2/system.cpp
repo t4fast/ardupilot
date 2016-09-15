@@ -272,6 +272,7 @@ void Rover::set_mode(enum mode mode)
         loiter_time = 0;
     }
 
+    inGuidedYawThrust = false;
     control_mode = mode;
     throttle_last = 0;
     throttle = 500;

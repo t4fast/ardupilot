@@ -1159,6 +1159,39 @@ void GCS_MAVLINK_Rover::handleMessage(mavlink_message_t* msg)
             result = rover.compass.handle_mag_cal_command(packet);
             break;
 
+        case MAV_CMD_DO_SET_POSITION_YAW_THRUST:
+        {
+            // param1 : yaw angle to adjust direction by in centidegress
+            // param2 : Thrust - normalized to -2 .. 2
+
+            // exit if vehicle is not in Guided mode
+            if (rover.control_mode != GUIDED) {
+                break;
+            }
+
+            rover.inGuidedYawThrust = true;
+
+            rover.guidedYawSpeed.turn_angle = packet.param1;
+            rover.channel_steer->set_servo_out(rover.steerController.get_steering_out_angle_error(packet.param1));
+
+            // thrust gives speed in proportion to cruise speed.
+            // 1 would set speed to the cruise speed
+            // 2 is double the cruise speed.
+            float target_speed = rover.g.speed_cruise;
+            packet.param2 = constrain_float(packet.param2, -2.0f, 2.0f);
+            if (packet.param2 < 0) {
+                // We want a reverse speed adjustment
+                target_speed *= -packet.param2;
+            } else {
+                target_speed *= packet.param2;
+            }
+            rover.guidedYawSpeed.target_speed = target_speed;
+            rover.calc_throttle(target_speed);
+
+            result = MAV_RESULT_ACCEPTED;
+            break;
+        }
+
         default:
                 break;
             }

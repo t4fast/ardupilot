@@ -415,7 +415,10 @@ void Rover::update_current_mode(void)
         break;
 
     case GUIDED:
-        if (rtl_complete || verify_RTL()) {
+        if (inGuidedYawThrust) {
+            guidedYawThrust();
+        }
+        else if (rtl_complete || verify_RTL()) {
             // we have reached destination so stop where we are
             if (channel_throttle->get_servo_out() != g.throttle_min.get()) {
                 gcs_send_mission_item_reached_message(0);
@@ -511,17 +514,26 @@ void Rover::update_navigation()
         break;
 
     case GUIDED:
-        // no loitering around the wp with the rover, goes direct to the wp position
-        calc_lateral_acceleration();
-        calc_nav_steer();
-        if (rtl_complete || verify_RTL()) {
-            // we have reached destination so stop where we are
-            channel_throttle->set_servo_out(g.throttle_min.get());
-            channel_steer->set_servo_out(0);
-            lateral_acceleration = 0;
+        if (!inGuidedYawThrust) {
+            // no loitering around the wp with the rover, goes direct to the wp position
+            calc_lateral_acceleration();
+            calc_nav_steer();
+            if (rtl_complete || verify_RTL()) {
+                // we have reached destination so stop where we are
+                channel_throttle->set_servo_out(g.throttle_min.get());
+                channel_steer->set_servo_out(0);
+                lateral_acceleration = 0;
+            }
         }
         break;
     }
 }
- 
+
+void Rover::guidedYawThrust()
+{
+    int32_t servo_out = rover.steerController.get_steering_out_angle_error(guidedYawSpeed.turn_angle);
+    rover.channel_steer->set_servo_out(servo_out);
+    rover.calc_throttle(guidedYawSpeed.target_speed);
+}
+
 AP_HAL_MAIN_CALLBACKS(&rover);
